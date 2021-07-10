@@ -1,0 +1,52 @@
+---
+# file: roles/common/tasks/main.yml
+
+- name: Install needed packages
+  package:
+    name:
+      - tree
+    state: latest
+  become: yes
+
+- name: Create needed directories
+  file:
+    path: '/opt/{{ item }}'
+    state: directory
+    mode: '0755'
+  with_items:
+    - 'node'
+    - 'mvn'
+  become: yes
+
+- name: Transfer node to servers
+  unarchive: 
+    src: roles/common/files/node-v14.17.3-linux-x64.tar.gz
+    dest: /opt/node/
+  become: yes
+
+- name: Transfer maven to servers
+  unarchive: 
+    src: roles/common/files/apache-maven-3.8.1-bin.tar.gz
+    dest: /opt/mvn/
+  become: yes
+
+- name: Copy .bash_profile to servers
+  template:
+    src: roles/common/templates/.bash_profile
+    dest: /root/.bash_profile
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+  become: yes
+
+- name: Test installations
+  shell: |
+    npm --version;
+    node --version;
+    mvn --version | head -1;
+  environment:
+    PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:/opt/mvn/apache-maven-3.8.1/bin:/opt/node/node-v14.17.3-linux-x64/bin:/opt/mvn/apache-maven-3.8.1/bin:/opt/node/node-v14.17.3-linux-x64/bin'
+  become: yes
+  register: check
+
+- debug: var=check.stdout_lines
